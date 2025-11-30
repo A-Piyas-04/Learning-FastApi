@@ -6,8 +6,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import select
 from typing import List
 
-from database import create_db_and_tables, get_session, engine
+from database import create_db_and_tables, get_session
 from models import Contact, ContactCreate, ContactRead, ContactUpdate
+
 
 app = FastAPI(title="QuickContacts API")
 
@@ -37,6 +38,7 @@ def list_contacts(session=Depends(get_session)):
     """List all contacts"""
     contacts = session.exec(select(Contact).order_by(Contact.created_at.desc())).all()
     return contacts
+    
 
 @app.get("/contacts/{contact_id}", response_model=ContactRead)
 def get_contact(contact_id: int, session=Depends(get_session)):
@@ -45,6 +47,8 @@ def get_contact(contact_id: int, session=Depends(get_session)):
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
     return contact
+
+
 
 @app.post("/contacts", response_model=ContactRead, status_code=201)
 def create_contact(contact_in: ContactCreate, session=Depends(get_session)):
