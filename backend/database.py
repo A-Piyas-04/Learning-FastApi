@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=".env")  # load .env when running backend
 
-DB_USER = os.getenv("POSTGRES_USER", "qc_user")
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "qc_pass")
-DB_NAME = os.getenv("POSTGRES_DB", "qc_db")
+DB_USER = os.getenv("POSTGRES_USER", "pias123")
+DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "pias123")
+DB_NAME = os.getenv("POSTGRES_DB", "pias_db")
 DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
 DB_PORT = os.getenv("POSTGRES_PORT", "5432")
 

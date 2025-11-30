@@ -1,10 +1,10 @@
 # main.py
 # Run: uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
+from typing import List
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import select
-from typing import List
 
 from database import create_db_and_tables, get_session
 from models import Contact, ContactCreate, ContactRead, ContactUpdate
@@ -38,7 +38,7 @@ def list_contacts(session=Depends(get_session)):
     """List all contacts"""
     contacts = session.exec(select(Contact).order_by(Contact.created_at.desc())).all()
     return contacts
-    
+
 
 @app.get("/contacts/{contact_id}", response_model=ContactRead)
 def get_contact(contact_id: int, session=Depends(get_session)):
