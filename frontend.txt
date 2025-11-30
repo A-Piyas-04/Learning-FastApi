@@ -1,0 +1,241 @@
+frontend/
+├── package.json
+├── vite.config.js
+├── index.html
+└── src/
+    ├── main.jsx
+    ├── App.jsx
+    ├── ContactForm.jsx
+    ├── ContactList.jsx
+    └── styles.css
+1️⃣ frontend/package.json
+json
+Copy code
+{
+  "name": "quickcontacts-frontend",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "@vitejs/plugin-react": "^4.0.0"
+  }
+}
+2️⃣ frontend/index.html
+html
+Copy code
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuickContacts</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+3️⃣ frontend/vite.config.js
+js
+Copy code
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  server: { port: 5173 }
+});
+4️⃣ frontend/src/main.jsx
+jsx
+Copy code
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.jsx";
+import "./styles.css";
+
+createRoot(document.getElementById("root")).render(<App />);
+5️⃣ frontend/src/App.jsx
+jsx
+Copy code
+import React, { useEffect, useState } from "react";
+import ContactList from "./ContactList.jsx";
+import ContactForm from "./ContactForm.jsx";
+
+const API = "http://localhost:8000";
+
+export default function App() {
+  const [contacts, setContacts] = useState([]);
+  const [editing, setEditing] = useState(null); // contact being edited
+  const [message, setMessage] = useState("");
+
+  // Fetch contacts on mount
+  const fetchContacts = async () => {
+    try {
+      const res = await fetch(`${API}/contacts`);
+      const data = await res.json();
+      setContacts(data);
+    } catch {
+      setMessage("Failed to load contacts");
+    }
+  };
+
+  useEffect(() => { fetchContacts(); }, []);
+
+  // Add new contact
+  const onCreate = async (contact) => {
+    try {
+      const res = await fetch(`${API}/contacts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(contact)
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setContacts([data, ...contacts]);
+      setMessage("Contact added");
+    } catch {
+      setMessage("Failed to add contact");
+    }
+  };
+
+  // Update contact
+  const onUpdate = async (id, updates) => {
+    try {
+      const res = await fetch(`${API}/contacts/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+      if (!res.ok) throw new Error();
+      const updated = await res.json();
+      setContacts(contacts.map(c => c.id === id ? updated : c));
+      setEditing(null);
+      setMessage("Contact updated");
+    } catch {
+      setMessage("Update failed");
+    }
+  };
+
+  // Delete contact
+  const onDelete = async (id) => {
+    if (!confirm("Delete this contact?")) return;
+    try {
+      const res = await fetch(`${API}/contacts/${id}`, { method: "DELETE" });
+      if (res.status === 204) {
+        setContacts(contacts.filter(c => c.id !== id));
+        setMessage("Contact deleted");
+      } else {
+        setMessage("Delete failed");
+      }
+    } catch {
+      setMessage("Delete error");
+    }
+  };
+
+  return (
+    <div className="container">
+      <h1>QuickContacts</h1>
+      <ContactForm onCreate={onCreate} editing={editing} onUpdate={onUpdate} />
+      {message && <div className="message">{message}</div>}
+      <ContactList contacts={contacts} onEdit={setEditing} onDelete={onDelete} />
+    </div>
+  );
+}
+6️⃣ frontend/src/ContactForm.jsx
+jsx
+Copy code
+import React, { useState, useEffect } from "react";
+
+export default function ContactForm({ onCreate, editing, onUpdate }) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    if (editing) {
+      setName(editing.name);
+      setPhone(editing.phone);
+      setEmail(editing.email);
+    } else {
+      setName(""); setPhone(""); setEmail("");
+    }
+  }, [editing]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const payload = { name, phone, email };
+    if (editing && onUpdate) {
+      onUpdate(editing.id, payload);
+    } else {
+      onCreate(payload);
+      setName(""); setPhone(""); setEmail("");
+    }
+  };
+
+  return (
+    <form className="form" onSubmit={handleSubmit}>
+      <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} required />
+      <input placeholder="Phone" value={phone} onChange={e => setPhone(e.target.value)} required />
+      <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+      <button type="submit">{editing ? "Update" : "Add"}</button>
+      {editing && <small>Editing contact ID {editing.id}</small>}
+    </form>
+  );
+}
+7️⃣ frontend/src/ContactList.jsx
+jsx
+Copy code
+import React from "react";
+
+export default function ContactList({ contacts, onEdit, onDelete }) {
+  if (!contacts.length) return <div>No contacts yet.</div>;
+
+  return (
+    <div className="list">
+      {contacts.map(c => (
+        <div key={c.id} className="card">
+          <div className="card-left">
+            <strong>{c.name}</strong>
+            <div>{c.phone}</div>
+            <div className="muted">{c.email}</div>
+            <div className="muted">Created: {new Date(c.created_at).toLocaleString()}</div>
+          </div>
+          <div className="card-actions">
+            <button onClick={() => onEdit(c)}>Edit</button>
+            <button onClick={() => onDelete(c.id)}>Delete</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+8️⃣ frontend/src/styles.css
+css
+Copy code
+body { font-family: Arial, sans-serif; background:#f6f8fa; margin:0; padding:20px; }
+.container { max-width:800px; margin:0 auto; background:white; padding:20px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+h1 { margin-top:0; }
+.form { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+.form input { flex:1; padding:8px; border-radius:6px; border:1px solid #ddd; }
+.form button { padding:8px 12px; border-radius:6px; border:none; background:#2b8aef; color:white; cursor:pointer; }
+.message { margin-bottom:10px; color:#666; }
+.list { display:flex; flex-direction:column; gap:8px; }
+.card { display:flex; justify-content:space-between; padding:12px; border:1px solid #eee; border-radius:6px; background:#fff; }
+.card-left { max-width:70%; }
+.card-actions button { margin-left:6px; padding:6px 8px; border-radius:6px; border:1px solid #ddd; background:#fff; cursor:pointer; }
+.muted { color:#777; font-size:12px; }
+✅ How to run frontend
+bash
+Copy code
+cd frontend
+npm install
+npm run dev

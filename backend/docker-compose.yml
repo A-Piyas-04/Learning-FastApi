@@ -1,14 +1,13 @@
-version: "3.9"
-
 services:
   db:
-    image: postgres:15 
+    image: postgres:15
     container_name: pias_postgres
     restart: always
     environment:
       POSTGRES_USER: pias123
       POSTGRES_PASSWORD: pias123
       POSTGRES_DB: pias_db
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5432:5432"
     volumes:
