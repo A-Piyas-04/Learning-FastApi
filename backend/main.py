@@ -1,10 +1,15 @@
+"""QuickContacts API - FastAPI backend for managing contacts.
+
+Provides RESTful endpoints for CRUD operations on contacts with PostgreSQL.
+Run: uvicorn main:app --reload --host 0.0.0.0 --port 8000
+"""
 # main.py
 # Run: uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 from typing import List
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import select
+from sqlmodel import select, desc
 
 from database import create_db_and_tables, get_session
 from models import Contact, ContactCreate, ContactRead, ContactUpdate
@@ -28,6 +33,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup():
+    """Initialize database tables on application startup."""
     # Ensure DB tables exist when the app starts
     create_db_and_tables()
 
@@ -36,7 +42,7 @@ def on_startup():
 @app.get("/contacts", response_model=List[ContactRead])
 def list_contacts(session=Depends(get_session)):
     """List all contacts"""
-    contacts = session.exec(select(Contact).order_by(Contact.created_at.desc())).all()
+    contacts = session.exec(select(Contact).order_by(desc(Contact.created_at))).all()
     return contacts
 
 
@@ -53,7 +59,7 @@ def get_contact(contact_id: int, session=Depends(get_session)):
 @app.post("/contacts", response_model=ContactRead, status_code=201)
 def create_contact(contact_in: ContactCreate, session=Depends(get_session)):
     """Create a contact"""
-    contact = Contact.from_orm(contact_in)
+    contact = Contact.model_validate(contact_in)
     session.add(contact)
     session.commit()
     session.refresh(contact)
